@@ -164,9 +164,11 @@ impl LolspeakCompiler {
     /*
     this is where your gonna see the bulk of my code and also I was super lazy with commenting here
     This will basically look like my bnf except that:
-       I change the logic for checking since I didnt want to use weird category thingy fucntions anymore (the "is_x" functions)
-       I format things weirdly for conveinece or just it was how I was thinking in the moment, Please let me know if you have
-       any questions professor, this is honestly a mess to read and I am willing to go back and comment it to look nice and stuff
+        I change the logic for checking since I didnt want to use weird category thingy fucntions anymore (the "is_x" functions)
+        I format things weirdly for conveinece or just it was how I was thinking in the moment,
+        most the functions here will not have the "******************* Oscar changes" for comments relating to them to not flood
+        the code with comments and also because I am lazy, Please let me know if you have
+        any questions professor, this is honestly a mess to read and I am willing to go back and comment it to look nice and stuff
     */
 
     fn Start_End(&mut self) {
@@ -210,14 +212,19 @@ impl LolspeakCompiler {
     }
 
     fn headingPart(&mut self) {
-        // <Heading_Part> ::= <Comment> <Head> | ""
-        if self.current_tok == "#OBTW" || self.current_tok == "#MAEK" {
-            self.comment();
-            if self.current_tok == "#MAEK" {
-                self.head();
+         // <Heading_Part> ::= <Comment> <Head> | ""
+         //checks for optional comments after #HAI,
+        while self.current_tok == "#OBTW" {
+            self.comment(); 
+        }
+
+        if self.current_tok == "#MAEK" {
+            let peek = self.lexer.tokens.last().cloned().unwrap_or_default(); //checks if next token is head
+            if peek == "HEAD" {
+                self.head(); //If there is no comment, just start head
             }
         } else {
-            println!("No heading found.");
+             println!("No heading found.");
         }
     }
 
@@ -363,18 +370,30 @@ impl LolspeakCompiler {
 
     fn list(&mut self) {
         println!("Parsing <List>...");
-        // <List> ::= "#MAEK" "LIST" <Item> ... "#OIC"
-        self.next_token();
+        // <List> ::= "#MAEK" "LIST" <Item> <List> "#OIC" | "#MAEK" "LIST" <Item> "#OIC"
+        if self.current_tok != "LIST" {
+            eprintln!("Syntax error: Expected 'LIST' after #MAEK, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
+        self.next_token(); 
 
+        //start HTML list output
+        self.html_output.push_str("<ul>\n");
+
+        //parse each item until #OIC
         while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
             if self.current_tok == "#GIMMEH" {
-                self.next_token();
+                self.next_token(); //if token is #GIMMEH, move to next token 
                 if self.current_tok == "ITEM" {
-                    self.next_token();
+                    self.next_token(); // if token is item, add item
+                    self.html_output.push_str("<li>"); //start html list item
                     println!("List item: {}", self.current_tok);
                     while self.current_tok != "#MKAY" && self.current_tok != "#OIC" && !self.current_tok.is_empty() {
+                        self.html_output.push_str(&format!(" {}", self.current_tok));
                         self.next_token();
                     }
+                    self.html_output.push_str("</li>\n"); //close html list item
+
                     if self.current_tok == "#MKAY" {
                         self.next_token();
                     }
@@ -385,6 +404,7 @@ impl LolspeakCompiler {
         }
 
         if self.current_tok == "#OIC" {
+            self.html_output.push_str("</ul>\n"); //close HTML list
             println!("End of list.");
             self.next_token();
         } else {
@@ -560,15 +580,18 @@ fn main() {
     let mut compiler = LolspeakCompiler::new();
     compiler.compile(&sentence);
 
+    // ******************* Oscar changes:
     //mostly for debugging, just a section of the output that I see the parser parse through
     println!("\n        Parse Log:");
 
     compiler.parse();
 
+    // ******************* Oscar changes:
     //mostly for debugging, prints out the html output
     println!("\n        HTML OUTPUT:");
     println!("{}", compiler.html_output);
 
+    // ******************* Oscar changes:
     //for outputing the html into a file
     let mut output_file = File::create("output.html")
         .expect("Error: Could not create html file.");
