@@ -132,6 +132,11 @@ pub struct LolspeakCompiler {
     // ******************* Oscar changes:
     // add field to build output
     pub html_output: String,
+
+    // ******************* Oscar changes:
+    // add vector for variables 
+    pub varName: Vec<String>,
+    pub varContent: Vec<String>,
 }
 
 impl LolspeakCompiler {
@@ -142,6 +147,11 @@ impl LolspeakCompiler {
             // ******************* Oscar changes
             //add output for constructor
             html_output: String::new(), 
+
+            // ******************* Oscar changes:
+            //add the variables for contructor
+            varName: Vec::new(),
+            varContent: Vec::new(),
         }
     }
 
@@ -328,6 +338,8 @@ impl LolspeakCompiler {
             "#OBTW" => self.comment(),
             "#MAEK" => self.paragraphOrList(),
             "#GIMMEH" => self.format(), 
+            "#I" => self.variable(),
+            "#LEMME" => self.var_use(),
             _ => {
                 // Plain text or variable use
                 println!("Encountered text or variable: {}", self.current_tok);
@@ -339,11 +351,16 @@ impl LolspeakCompiler {
     fn paragraph(&mut self) {
         println!("Parsing <Paragraph>...");
         // <Paragraph> ::= "#MAEK" "PARAGRAF" ... "#OIC"
+        if self.current_tok != "PARAGRAF" {
+            eprintln!("Syntax error: Expected 'PARAGRAF' after #MAEK, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
         self.next_token();
 
         // start HTML paragraph
         self.html_output.push_str("<p>");
 
+        //parse through paragraph
         while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
             match self.current_tok.as_str() {
                 "#GIMMEH" => self.format(), // detect format
@@ -357,7 +374,6 @@ impl LolspeakCompiler {
         }
 
         if self.current_tok == "#OIC" {
-            // ******************* Oscar changes:
             // close HTML paragraph
             self.html_output.push_str("</p>\n");
             println!("End of paragraph.");
@@ -514,8 +530,91 @@ impl LolspeakCompiler {
         }
     }
 
+    fn variable(&mut self) {
+        // <Variable> ::= "#I" "HAZ" <Var_Name> "#IT" "IZ" <Text> "#MKAY"
+        println!("Parsing <Variable>...");
+        self.next_token();
+
+        if self.current_tok != "HAZ" {
+            eprintln!("Syntax error: expected 'HAZ' after #I, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
+        self.next_token();
+
+        let name = self.current_tok.clone(); //// Get variable name
+        println!("Variable name: {}", name);
+        self.next_token();
+
+        if self.current_tok != "#IT" {
+            eprintln!("Syntax error: expected '#IT' after, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
+        self.next_token();
+
+        if self.current_tok != "IZ" {
+            eprintln!("Syntax error: expected 'IZ' after, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
+        self.next_token();
+
+        //store token content until #MKAY
+        let mut value_parts = Vec::new();
+        while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
+            value_parts.push(self.current_tok.clone());
+            self.next_token();
+        }
+
+        let value = value_parts.join(" ");
+        println!("Variable value: {}", value);
+
+        // Store variable
+        self.varName.push(name);
+        self.varContent.push(value);
+
+        if self.current_tok == "#MKAY" {
+            self.next_token();
+        } else {
+            eprintln!("Syntax error: missing '#MKAY' at end of variable definition.");
+            std::process::exit(1);
+        }
+    }
+
+    fn var_use(&mut self) {
+        // <Var_Use> ::= "#LEMME" "SEE" <Var_Name> "#MKAY"
+        println!("Parsing <Var_Use>...");
+        self.next_token();
+
+        if self.current_tok != "SEE" {
+            eprintln!("Syntax error: expected 'SEE' after #LEMME, found '{}'", self.current_tok);
+            std::process::exit(1);
+        }
+        self.next_token();
+
+        let name = self.current_tok.clone();
+        println!("Using variable: {}", name);
+
+        // Look up variable name
+        if let Some(pos) = self.varName.iter().position(|n| *n == name) {
+            let value = &self.varContent[pos];
+            self.html_output.push_str(&format!("{}", value));
+            println!("Inserted variable value into HTML: {}", value);
+        } else {
+            eprintln!("Semantic error: variable '{}' not defined.", name);
+            std::process::exit(1);
+        }
+
+        self.next_token();
+        if self.current_tok == "#MKAY" {
+            self.next_token();
+        } else {
+            eprintln!("Syntax error: missing '#MKAY' after variable use.");
+            std::process::exit(1);
+        }
+    }
 
 }
+
+    
 
 impl Compiler for LolspeakCompiler {
     fn compile(&mut self, source: &str) {
