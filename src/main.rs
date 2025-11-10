@@ -4,9 +4,11 @@
 //added comments at top to notify professor on how I will be commenting the code, also that this code was orignally the lab 5 code
 //(tip, press ctrl+f and just put in "******************* Oscar changes:" to see where I made all my changes)
 
-
+//imports for file reading and output
 use std::env;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 
 //
 // ===================== Compiler Trait =====================
@@ -168,11 +170,17 @@ impl LolspeakCompiler {
     */
 
     fn Start_End(&mut self) {
+        // start html Wrapper
+        self.html_output.push_str("<html>\n<body>\n");
+
         // <Start_End> ::= "#HAI" <Heading_Part> <Body_Repeatable> "#KTHXBYE"
         self.hai();          
         self.headingPart();    
         self.bodyRepeatable(); 
         self.kThxBye();    
+
+        //End html wrapper
+        self.html_output.push_str("</body>\n</html>\n");
     }
 
     fn hai(&mut self) {
@@ -272,25 +280,31 @@ impl LolspeakCompiler {
     }
 
     fn comment(&mut self) {
-        while self.current_tok == "#OBTW" {
-            println!("Found comment start: {}", self.current_tok);
-            self.next_token();
-
-            let mut comment_text = Vec::new();
-            while self.current_tok != "#TLDR" && !self.current_tok.is_empty() {
-                comment_text.push(self.current_tok.clone());
-                self.next_token();
-            }
-
-            if self.current_tok != "#TLDR" {
-                eprintln!("Syntax error: missing '#TLDR' to close comment block.");
-                std::process::exit(1);
-            }
-
-            println!("Comment captured: {}", comment_text.join(" "));
-            self.next_token();
-
+        if self.current_tok != "#OBTW" {
+            eprintln!("Syntax error: expected '#OBTW' to start a comment, found '{}'", self.current_tok);
+            std::process::exit(1);
         }
+        self.next_token(); // consume #OBTW
+
+        let mut comment_text = String::new();
+        while self.current_tok != "#TLDR" && !self.current_tok.is_empty() {
+            comment_text.push_str(&self.current_tok);
+            comment_text.push(' ');
+            self.next_token();
+        }
+
+        if self.current_tok != "#TLDR" {
+            eprintln!("Syntax error: missing '#TLDR' to close comment block.");
+            std::process::exit(1);
+        }
+
+        self.next_token();
+
+        //html
+        self.html_output
+            .push_str(&format!("<!-- {} -->\n", comment_text.trim()));
+
+        println!("HTML Comment written: <!-- {} -->", comment_text.trim());
     }
 
     fn bodyRepeatable(&mut self) {
@@ -464,7 +478,7 @@ impl LolspeakCompiler {
                     self.next_token();
                 }
             }
-            
+
             _ => {
                 println!("Unknown inline element: {}", self.current_tok);
                 self.next_token();
@@ -546,10 +560,21 @@ fn main() {
     let mut compiler = LolspeakCompiler::new();
     compiler.compile(&sentence);
 
+    //mostly for debugging, just a section of the output that I see the parser parse through
     println!("\n        Parse Log:");
 
     compiler.parse();
 
+    //mostly for debugging, prints out the html output
     println!("\n        HTML OUTPUT:");
     println!("{}", compiler.html_output);
+
+    //for outputing the html into a file
+    let mut output_file = File::create("output.html")
+        .expect("Error: Could not create html file.");
+    write!(output_file, "{}", compiler.html_output)
+        .expect("Error: Failed to write HTML output.");
+    println!("\n HTML output has been written to output.txt");
+
+    
 }
