@@ -1,6 +1,7 @@
 #HAI
-#MAEK HEAD #GIMMEH TITLE Paragraph Test #MKAY #OIC
+#MAEK HEAD #GIMMEH TITLE Variable in Paragraph #MKAY #OIC
+#I HAZ name #IT IZ Oscar #MKAY
 #MAEK PARAGRAF
-This is my first paragraph in LOLCODE HTML
+Hello my name is #LEMME SEE name #MKAY and this is working!
 #OIC
 #KTHXBYE

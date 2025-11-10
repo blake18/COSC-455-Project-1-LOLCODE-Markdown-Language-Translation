@@ -364,6 +364,7 @@ impl LolspeakCompiler {
         while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
             match self.current_tok.as_str() {
                 "#GIMMEH" => self.format(), // detect format
+                "#LEMME" => self.var_use(), //added variables woooah
                 "#MAEK" => self.list(),     // nested list in paragraph
                 _ => {
                     self.html_output.push_str(&format!(" {}", self.current_tok)); //added for html
