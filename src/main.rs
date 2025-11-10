@@ -334,7 +334,7 @@ impl LolspeakCompiler {
                 }
             }
         }
-        
+
         if self.current_tok == "#OIC" {
             // ******************* Oscar changes:
             // close HTML paragraph
@@ -395,12 +395,80 @@ impl LolspeakCompiler {
         // Handles stuff like bold, italics, newline, sounds, etc.
         self.next_token();
         match self.current_tok.as_str() {
-            "BOLD" => println!("Bold text start"),
-            "ITALICS" => println!("Italics text start"),
-            "NEWLINE" => println!("Newline element"),
-            "SOUNDZ" => println!("Sound element start"),
-            "VIDZ" => println!("Video element start"),
-            _ => println!("Unknown inline element: {}", self.current_tok),
+            "NEWLINE" => {
+                println!("Newline element");
+                self.html_output.push_str("<br>\n");
+                self.next_token();
+            }
+
+            "BOLD" => {
+                println!("Bold element start");
+                self.next_token();
+                self.html_output.push_str("<b>");
+                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
+                    println!("Bold content: {}", self.current_tok);
+                    self.html_output.push_str(&format!(" {}", self.current_tok));
+                    self.next_token();
+                }
+                self.html_output.push_str("</b>");
+                if self.current_tok == "#MKAY" {
+                    self.next_token();
+                }
+            }
+
+            "ITALICS" => {
+                println!("Italics text start");
+                self.next_token();
+                self.html_output.push_str("<i>");
+                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
+                    println!("Italics content: {}", self.current_tok);
+                    self.html_output.push_str(&format!(" {}", self.current_tok));
+                    self.next_token();
+                }
+                self.html_output.push_str("</i>");
+                if self.current_tok == "#MKAY" {
+                    self.next_token();
+                }
+            }
+
+            "SOUNDZ" => {
+                println!("Sound element start");
+                self.next_token();
+                if !self.current_tok.is_empty() && self.current_tok != "#MKAY" {
+                    let url = self.current_tok.clone();
+                    println!("Sound URL: {}", url);
+                    self.html_output.push_str(&format!(
+                        "<audio controls><source src=\"{}\" type=\"audio/mpeg\"></audio>",
+                        url
+                    ));
+                    self.next_token();
+                }
+                if self.current_tok == "#MKAY" {
+                    self.next_token();
+                }
+            }
+
+            "VIDZ" => {
+                println!("Video element start");
+                self.next_token();
+                if !self.current_tok.is_empty() && self.current_tok != "#MKAY" {
+                    let url = self.current_tok.clone();
+                    println!("Video URL: {}", url);
+                    self.html_output.push_str(&format!(
+                        "<video controls width=\"480\"><source src=\"{}\" type=\"video/mp4\"></video>",
+                        url
+                    ));
+                    self.next_token();
+                }
+                if self.current_tok == "#MKAY" {
+                    self.next_token();
+                }
+            }
+            
+            _ => {
+                println!("Unknown inline element: {}", self.current_tok);
+                self.next_token();
+            }
         }
 
         while self.current_tok != "#MKAY" && self.current_tok != "#OIC" && !self.current_tok.is_empty() {
