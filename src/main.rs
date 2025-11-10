@@ -259,7 +259,15 @@ impl LolspeakCompiler {
             std::process::exit(1);
         }
 
+        let title_joined = title_text.join(" ");
+        // ******************* Oscar changes:
+        // generate HTML for the head/title section
+        self.html_output.push_str(&format!(
+            "<head><title>{}</title></head>\n",
+            title_joined
+        ));
         println!("Parsed head title: {}", title_text.join(" "));
+
         self.next_token();
     }
 
@@ -312,18 +320,25 @@ impl LolspeakCompiler {
         // <Paragraph> ::= "#MAEK" "PARAGRAF" ... "#OIC"
         self.next_token();
 
+        // start HTML paragraph
+        self.html_output.push_str("<p>");
+
         while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
             match self.current_tok.as_str() {
                 "#GIMMEH" => self.format(), // detect format
                 "#MAEK" => self.list(),     // nested list in paragraph
                 _ => {
+                    self.html_output.push_str(&format!(" {}", self.current_tok)); //added for html
                     println!("Paragraph content: {}", self.current_tok);
                     self.next_token();
                 }
             }
         }
-
+        
         if self.current_tok == "#OIC" {
+            // ******************* Oscar changes:
+            // close HTML paragraph
+            self.html_output.push_str("</p>\n");
             println!("End of paragraph.");
             self.next_token();
         } else {
@@ -463,17 +478,10 @@ fn main() {
     let mut compiler = LolspeakCompiler::new();
     compiler.compile(&sentence);
 
-    /* 
-    println!("TOKENS:");
-    for tok in &compiler.lexer.tokens {
-        println!("{}", tok);
-    }
-    */
+    println!("\n        Parse Log:");
 
     compiler.parse();
 
-    println!(
-        "The sentence '{}' follows the lolspeak grammar!",
-        sentence.trim()
-    );
+    println!("\n        HTML OUTPUT:");
+    println!("{}", compiler.html_output);
 }
