@@ -1,7 +1,7 @@
 #HAI
-#MAEK HEAD #GIMMEH TITLE Variable in Paragraph #MKAY #OIC
-#I HAZ name #IT IZ Oscar #MKAY
+#I HAZ word #IT IZ WOW #MKAY
 #MAEK PARAGRAF
-Hello my name is #LEMME SEE name #MKAY and this is working!
+#GIMMEH BOLD Very #LEMME SEE word #MKAY #MKAY
+#GIMMEH ITALICS such style #LEMME SEE word #MKAY #MKAY
 #OIC
 #KTHXBYE

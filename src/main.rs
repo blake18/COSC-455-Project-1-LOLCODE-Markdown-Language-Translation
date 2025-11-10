@@ -398,17 +398,27 @@ impl LolspeakCompiler {
         self.html_output.push_str("<ul>\n");
 
         //parse each item until #OIC
-        while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
+        while self.current_tok != "#OIC" && self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
             if self.current_tok == "#GIMMEH" {
                 self.next_token(); //if token is #GIMMEH, move to next token 
                 if self.current_tok == "ITEM" {
                     self.next_token(); // if token is item, add item
                     self.html_output.push_str("<li>"); //start html list item
                     println!("List item: {}", self.current_tok);
+                    
                     while self.current_tok != "#MKAY" && self.current_tok != "#OIC" && !self.current_tok.is_empty() {
-                        self.html_output.push_str(&format!(" {}", self.current_tok));
-                        self.next_token();
-                    }
+                        if self.current_tok == "#LEMME" {
+                            // lets variables be used inside lists
+                            self.var_use();
+                        } else if self.current_tok == "#GIMMEH" {
+                            // allow for formats
+                            self.format();
+                        } else {
+                            self.html_output.push_str(&format!(" {}", self.current_tok));
+                            self.next_token();
+                        }
+                    }       
+
                     self.html_output.push_str("</li>\n"); //close html list item
 
                     if self.current_tok == "#MKAY" {
@@ -455,14 +465,22 @@ impl LolspeakCompiler {
             "BOLD" => {
                 println!("Bold element start");
                 self.next_token();
-                self.html_output.push_str("<b>");
-                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
-                    println!("Bold content: {}", self.current_tok);
-                    self.html_output.push_str(&format!(" {}", self.current_tok));
-                    self.next_token();
+                self.html_output.push_str("<b>"); //start bold html
+                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //read everything inside bold until #MKAY
+                    match self.current_tok.as_str() {
+                        "#LEMME" => {
+                            // allows variables inside bold text
+                            self.var_use();
+                        }
+                        _ => {
+                            println!("Bold content: {}", self.current_tok);
+                            self.html_output.push_str(&format!(" {}", self.current_tok));
+                            self.next_token();
+                        }
+                    }
                 }
-                self.html_output.push_str("</b>");
-                if self.current_tok == "#MKAY" {
+                self.html_output.push_str("</b>"); // end bold html
+                if self.current_tok == "#MKAY" { //moves to next token after #MKAY
                     self.next_token();
                 }
             }
@@ -470,14 +488,22 @@ impl LolspeakCompiler {
             "ITALICS" => {
                 println!("Italics text start");
                 self.next_token();
-                self.html_output.push_str("<i>");
-                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
-                    println!("Italics content: {}", self.current_tok);
-                    self.html_output.push_str(&format!(" {}", self.current_tok));
-                    self.next_token();
+                self.html_output.push_str("<i>"); //start italic html
+                while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //read everything inside bold until #MKAY
+                    match self.current_tok.as_str() {
+                        "#LEMME" => {
+                             // allows variables inside italics text
+                            self.var_use();
+                        }
+                        _ => {
+                            println!("Italics content: {}", self.current_tok);
+                            self.html_output.push_str(&format!(" {}", self.current_tok));
+                            self.next_token();
+                        }
+                    }
                 }
-                self.html_output.push_str("</i>");
-                if self.current_tok == "#MKAY" {
+                self.html_output.push_str("</i>"); // end italic html
+                if self.current_tok == "#MKAY" { //moves to next token after #MKAY
                     self.next_token();
                 }
             }
@@ -506,7 +532,7 @@ impl LolspeakCompiler {
                     let url = self.current_tok.clone();
                     println!("Video URL: {}", url);
                     self.html_output.push_str(&format!(
-                        "<video controls width=\"480\"><source src=\"{}\" type=\"video/mp4\"></video>",
+                        "<iframe src=\"{}\"/></iframe>",
                         url
                     ));
                     self.next_token();
@@ -520,14 +546,6 @@ impl LolspeakCompiler {
                 println!("Unknown inline element: {}", self.current_tok);
                 self.next_token();
             }
-        }
-
-        while self.current_tok != "#MKAY" && self.current_tok != "#OIC" && !self.current_tok.is_empty() {
-            self.next_token();
-        }
-
-        if self.current_tok == "#MKAY" {
-            self.next_token();
         }
     }
 
