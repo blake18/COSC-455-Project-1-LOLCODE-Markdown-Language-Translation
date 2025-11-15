@@ -510,41 +510,43 @@ impl LolspeakCompiler {
 
             "SOUNDZ" => {
                 println!("Sound element start");
-                self.next_token();
-                if !self.current_tok.is_empty() && self.current_tok != "#MKAY" {
-                    let url = self.current_tok.clone();
-                    println!("Sound URL: {}", url);
-                    self.html_output.push_str(&format!(
-                        "<audio controls><source src=\"{}\" type=\"audio/mpeg\"></audio>",
-                        url
-                    ));
-                    self.next_token();
+                self.next_token(); // move to next token
+                let url = self.current_tok.clone(); // store token as "url"
+                self.next_token(); // move to next token
+                if self.current_tok != "#MKAY" { //if it does not end with #MKAY, spit out error
+                    eprintln!("Syntax Error: Missing #MKAY after SOUNDZ link");
+                    std::process::exit(1);
                 }
-                if self.current_tok == "#MKAY" {
-                    self.next_token();
-                }
-            }
+                self.next_token(); // move to next token
+                self.html_output.push_str(&format!( //add for html
+                    "<audio controls><source src=\"{}\" type=\"audio/mpeg\"></audio>", url 
+                ));
+            },
 
             "VIDZ" => {
                 println!("Video element start");
-                self.next_token();
-                if !self.current_tok.is_empty() && self.current_tok != "#MKAY" {
-                    let url = self.current_tok.clone();
-                    println!("Video URL: {}", url);
-                    self.html_output.push_str(&format!(
-                        "<iframe src=\"{}\"/></iframe>",
-                        url
-                    ));
-                    self.next_token();
+                self.next_token(); // move to next token
+                let url = self.current_tok.clone(); // store token as "url"
+                self.next_token(); // move to next token
+                if self.current_tok != "#MKAY" { //if it does not end with #MKAY, spit out error
+                    eprintln!("Syntax error: Missing #MKAY after VIDZ link");
+                    std::process::exit(1);
                 }
-                if self.current_tok == "#MKAY" {
-                    self.next_token();
-                }
-            }
+                self.next_token(); // move to next token
+                self.html_output.push_str(&format!( //add for html
+                        "<iframe src=\"{}\"></iframe>", url
+                ));
+            },
+
+            "NEWLINE" => {
+                println!("Newline element");
+                self.html_output.push_str("<br>\n"); //put <br> in html and do linebreak
+                self.next_token(); // move to next token 
+            },
 
             _ => {
-                println!("Unknown inline element: {}", self.current_tok);
-                self.next_token();
+                println!("Unknown inline: {}", self.current_tok); //all other tokens are unknown, spit out error
+                self.next_token(); // move to next token 
             }
         }
     }
