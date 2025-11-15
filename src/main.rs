@@ -172,13 +172,13 @@ impl LolspeakCompiler {
     //deleted all old grammar functions (from lab5)
     //replaced them with the grammar for my project
     /*
-    this is where your gonna see the bulk of my code and also I was super lazy with commenting here
+    this is where your gonna see the bulk of my code ~~and also I was super lazy with commenting here~~
+                                                    [NO LONGER TRUE], I did a bunch of commenting afterwards
     This will basically look like my bnf except that:
         I change the logic for checking since I didnt want to use weird category thingy fucntions anymore (the "is_x" functions)
         I format things weirdly for conveinece or just it was how I was thinking in the moment,
         most the functions here will not have the "******************* Oscar changes" for comments relating to them to not flood
-        the code with comments and also because I am lazy, Please let me know if you have
-        any questions professor, this is honestly a mess to read and I am willing to go back and comment it to look nice and stuff
+        the code with comments and also because I am lazy, Please let me know if you have any questions professor!  
     */
 
     fn Start_End(&mut self) {
@@ -196,137 +196,134 @@ impl LolspeakCompiler {
     }
 
     fn hai(&mut self) {
-        if self.current_tok == "#HAI" {
+        if self.current_tok == "#HAI" { //check if first token is #HAI
             println!("Found start token: {}", self.current_tok);
-            self.next_token();
+            self.next_token(); // move to next token
         } else {
-            eprintln!(
-                "Syntax error: '{}' was found when an article (#HAI) was expected.", 
+            eprintln!( //if first token is not #HAI, get mad
+                "Syntax error: '{}' was found when an article (#HAI) was expected.", //spit out error 
                 self.current_tok
             );
-            std::process::exit(1);
+            std::process::exit(1); //exit program
         }
     }
 
     fn kThxBye(&mut self) {
-        if self.current_tok == "#KTHXBYE" {
-            println!("Found start token: {}", self.current_tok);
-            self.next_token();
+        if self.current_tok == "#KTHXBYE" { //check if next token is #KTHXBYE
+            println!("Found end token: {}", self.current_tok);
+            self.next_token(); // move to next token
         } else {
-            eprintln!(
-                "Syntax error: '{}' was found when an article (#KTHXBYE) was expected.", 
+            eprintln!( //if next token is not #KTHXBYE, get mad
+                "Syntax error: '{}' was found when an article (#KTHXBYE) was expected.", //spit out error 
                 self.current_tok
             );
-            std::process::exit(1);
+            std::process::exit(1); //exit program
         }
     }
 
     fn headingPart(&mut self) {
-         // <Heading_Part> ::= <Comment> <Head> | ""
-         //checks for optional comments after #HAI,
-        while self.current_tok == "#OBTW" {
+        // <Heading_Part> ::= <Comment> <Head> | ""
+        //checks for optional comments after #HAI,
+        while self.current_tok == "#OBTW" { 
             self.comment(); 
         }
 
-        if self.current_tok == "#MAEK" {
+        if self.current_tok == "#MAEK" { //makes sure it starts with #MAEK
             let peek = self.lexer.tokens.last().cloned().unwrap_or_default(); //checks if next token is head
             if peek == "HEAD" {
                 self.head(); //If there is no comment, just start head
             }
-        } else {
-             println!("No heading found.");
+        } else {// if not a comment or head, continue parsing 
+             println!("No heading found."); 
         }
     }
 
-    fn head(&mut self) {
+    fn head(&mut self) { //Parses through head
         // <Head> ::= "#MAEK" "HEAD" "#GIMMEH" "TITLE" <Text> "#MKAY" "#OIC"
-        //basically one big switch case but idk rust so we do it bad
-        println!("Parsing <Head> block...");
+        println!("Parsing <Head> block..."); 
 
-        if self.current_tok != "#MAEK" {
-            eprintln!("Syntax error: Expected '#MAEK' to start head block, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "#MAEK" { //Makes sure head starts with #MAEK
+            eprintln!("Syntax error: Expected '#MAEK' to start head block, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
-        if self.current_tok != "HEAD" {
-            eprintln!("Syntax error: Expected 'HEAD' after #MAEK, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "HEAD" { // makes sure next token after #MAEK is HEAD
+            eprintln!("Syntax error: Expected 'HEAD' after #MAEK, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
-        if self.current_tok != "#GIMMEH" {
-            eprintln!("Syntax error: Expected '#GIMMEH' after HEAD, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "#GIMMEH" { // makes sure next token is #GIMMEH
+
+            eprintln!("Syntax error: Expected '#GIMMEH' after HEAD, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
-        if self.current_tok != "TITLE" {
-            eprintln!("Syntax error: Expected 'TITLE' after #GIMMEH, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "TITLE" { // maker sure next token after #GIMMEH is TITLE
+            eprintln!("Syntax error: Expected 'TITLE' after #GIMMEH, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
-        let mut title_text = Vec::new();
-        while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
+        let mut title_text = Vec::new(); //make vector for all tokens of title 
+        while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //collect it in all the tokens from title stopping at #MKAY
             title_text.push(self.current_tok.clone());
-            self.next_token();
+            self.next_token(); // move to next token
         }
 
-        if self.current_tok != "#MKAY" {
-            eprintln!("Syntax error: Missing '#MKAY' after title text.");
-            std::process::exit(1);
+        if self.current_tok != "#MKAY" { //makes sure titles ends with #MKAY Token
+            eprintln!("Syntax error: Missing '#MKAY' after title text."); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
-        if self.current_tok != "#OIC" {
-            eprintln!("Syntax error: Missing '#OIC' at end of head block.");
-            std::process::exit(1);
+        if self.current_tok != "#OIC" { //Makes sure Head ends with #OIC token
+            eprintln!("Syntax error: Missing '#OIC' at end of head block."); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
 
         let title_joined = title_text.join(" ");
-        // ******************* Oscar changes:
         // generate HTML for the head/title section
         self.html_output.push_str(&format!(
             "<head><title>{}</title></head>\n",
             title_joined
         ));
-        println!("Parsed head title: {}", title_text.join(" "));
-
-        self.next_token();
+        println!("Parsed head title: {}", title_text.join(" ")); 
+        self.next_token(); // move to next token
     }
 
     fn comment(&mut self) {
-        if self.current_tok != "#OBTW" {
-            eprintln!("Syntax error: expected '#OBTW' to start a comment, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "#OBTW" { // check to make sure comments begin with #OBTW
+            eprintln!("Syntax error: expected '#OBTW' to start a comment, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token(); // consume #OBTW
+        self.next_token(); // move to next token
 
-        let mut comment_text = String::new();
-        while self.current_tok != "#TLDR" && !self.current_tok.is_empty() {
+        let mut comment_text = String::new(); //make a string for the comment
+        while self.current_tok != "#TLDR" && !self.current_tok.is_empty() { //check for all text until #TLDR and put in string
             comment_text.push_str(&self.current_tok);
             comment_text.push(' ');
-            self.next_token();
+            self.next_token(); // move to next token
         }
 
-        if self.current_tok != "#TLDR" {
-            eprintln!("Syntax error: missing '#TLDR' to close comment block.");
-            std::process::exit(1);
+        if self.current_tok != "#TLDR" {// makes sure it ends with #TLDR to end the comment
+            eprintln!("Syntax error: missing '#TLDR' to close comment block."); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
 
-        self.next_token();
+        self.next_token(); // move to next token
 
         //html
         self.html_output
-            .push_str(&format!("<!-- {} -->\n", comment_text.trim()));
-
-        println!("HTML Comment written: <!-- {} -->", comment_text.trim());
+            .push_str(&format!("Comment written: {} -->\n", comment_text.trim()));
     }
 
     fn bodyRepeatable(&mut self) {
         // <Body_Repeatable> ::= <Body> <Body_Repeatable> | ""
         println!("Parsing <Body_Repeatable> (stub)");
+        //uses recursion, Keeps parising body tokens until out of tokens or until #KTHXBYE
         while !self.current_tok.is_empty() && self.current_tok != "#KTHXBYE" {
             self.body();
         }
@@ -341,7 +338,7 @@ impl LolspeakCompiler {
             "#I" => self.variable(),
             "#LEMME" => self.var_use(),
             _ => {
-                // Plain text or variable use
+                // Plain text or variable use, gets added to html later
                 println!("Encountered text or variable: {}", self.current_tok);
                 self.next_token();
             }
@@ -351,25 +348,26 @@ impl LolspeakCompiler {
     fn paragraph(&mut self) {
         println!("Parsing <Paragraph>...");
         // <Paragraph> ::= "#MAEK" "PARAGRAF" ... "#OIC"
-        if self.current_tok != "PARAGRAF" {
-            eprintln!("Syntax error: Expected 'PARAGRAF' after #MAEK, found '{}'", self.current_tok);
-            std::process::exit(1);
+        // we actually skip #MAEK because we already did that earlier.
+        if self.current_tok != "PARAGRAF" { //makes sure next token is PARAGRAF
+            eprintln!("Syntax error: Expected 'PARAGRAF' after #MAEK, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
         // start HTML paragraph
         self.html_output.push_str("<p>");
 
-        //parse through paragraph
+        //parse through paragraph until #OIC
         while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
             match self.current_tok.as_str() {
-                "#GIMMEH" => self.format(), // detect format
-                "#LEMME" => self.var_use(), //added variables woooah
-                "#MAEK" => self.list(),     // nested list in paragraph
-                _ => {
+                "#GIMMEH" => self.format(), // detects format
+                "#LEMME" => self.var_use(), // adds variables 
+                "#MAEK" => self.list(),     // allows lists
+                _ => {//adds the plain text to html
                     self.html_output.push_str(&format!(" {}", self.current_tok)); //added for html
                     println!("Paragraph content: {}", self.current_tok);
-                    self.next_token();
+                    self.next_token(); //and exit program
                 }
             }
         }
@@ -379,9 +377,9 @@ impl LolspeakCompiler {
             self.html_output.push_str("</p>\n");
             println!("End of paragraph.");
             self.next_token();
-        } else {
-            eprintln!("Syntax error: Missing #OIC at end of paragraph block.");
-            std::process::exit(1);
+        } else { // makes sure it ends with #OIC to end the paragraph
+            eprintln!("Syntax error: Missing #OIC at end of paragraph block."); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
     }
 
@@ -392,7 +390,7 @@ impl LolspeakCompiler {
             eprintln!("Syntax error: Expected 'LIST' after #MAEK, found '{}'", self.current_tok);
             std::process::exit(1);
         }
-        self.next_token(); 
+        self.next_token();
 
         //start HTML list output
         self.html_output.push_str("<ul>\n");
