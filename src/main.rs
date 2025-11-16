@@ -3,6 +3,7 @@
 //******************* Oscar changes:
 //added comments at top to notify professor on how I will be commenting the code, also that this code was orignally the lab 5 code
 //(tip, press ctrl+f and just put in "******************* Oscar changes:" to see where I made all my changes)
+//There is a big change to comments once we get to my Grammar, please make sure to read the big comment block right above it 
 
 //imports for file reading and output
 use std::env;
@@ -386,24 +387,25 @@ impl LolspeakCompiler {
     fn list(&mut self) {
         println!("Parsing <List>...");
         // <List> ::= "#MAEK" "LIST" <Item> <List> "#OIC" | "#MAEK" "LIST" <Item> "#OIC"
-        if self.current_tok != "LIST" {
-            eprintln!("Syntax error: Expected 'LIST' after #MAEK, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "LIST" {// checl to make sure next token starts with LIST
+            eprintln!("Syntax error: Expected 'LIST' after #MAEK, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //and exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token
 
         //start HTML list output
         self.html_output.push_str("<ul>\n");
 
         //parse each item until #OIC
-        while self.current_tok != "#OIC" && self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
-            if self.current_tok == "#GIMMEH" {
-                self.next_token(); //if token is #GIMMEH, move to next token 
-                if self.current_tok == "ITEM" {
-                    self.next_token(); // if token is item, add item
+        while self.current_tok != "#OIC" && self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //start loop, ends when out of tokens or we see #OIC or #MKAY
+            if self.current_tok == "#GIMMEH" { //make sure list starts with #GIMMEH
+                self.next_token(); // move to next token
+                if self.current_tok == "ITEM" { //makes sure next token is ITEM
+                    self.next_token(); // move to next token
                     self.html_output.push_str("<li>"); //start html list item
                     println!("List item: {}", self.current_tok);
                     
+                    //starts loop that collects all text in the ITEM, ends when we see #OIC or #MKAY
                     while self.current_tok != "#MKAY" && self.current_tok != "#OIC" && !self.current_tok.is_empty() {
                         if self.current_tok == "#LEMME" {
                             // lets variables be used inside lists
@@ -412,68 +414,69 @@ impl LolspeakCompiler {
                             // allow for formats
                             self.format();
                         } else {
+                            //add to html
                             self.html_output.push_str(&format!(" {}", self.current_tok));
-                            self.next_token();
+                            self.next_token(); // move to next token
                         }
                     }       
 
                     self.html_output.push_str("</li>\n"); //close html list item
 
-                    if self.current_tok == "#MKAY" {
-                        self.next_token();
+                    if self.current_tok == "#MKAY" { //if current token is #MKAY, end list
+                        self.next_token(); // move to next token
                     }
                 }
-            } else {
-                self.next_token();
+            } else {//if for some reason something doesnt match up, skip it
+                self.next_token(); // move to next token
             }
         }
 
-        if self.current_tok == "#OIC" {
+        if self.current_tok == "#OIC" {// makes sure lists end with #OIC 
             self.html_output.push_str("</ul>\n"); //close HTML list
             println!("End of list.");
-            self.next_token();
-        } else {
-            eprintln!("Syntax error: Missing #OIC at end of list block.");
-            std::process::exit(1);
+            self.next_token(); // move to next token
+        } else {//if it does not end with #OIC
+            eprintln!("Syntax error: Missing #OIC at end of list block.");// get mad, throw error 
+            std::process::exit(1); // move to next token
         }
     }
 
     fn paragraphOrList(&mut self) {
-        self.next_token();
-        match self.current_tok.as_str() {
-            "PARAGRAF" => self.paragraph(),
-            "LIST" => self.list(),
-            _ => {
-                eprintln!("Syntax error: expected PARAGRAF or LIST after #MAEK, found '{}'", self.current_tok);
-                std::process::exit(1);
+        self.next_token(); // move to next token
+        match self.current_tok.as_str() { //if the next token is--
+            "PARAGRAF" => self.paragraph(), // PARAGRAF, Uses Paragraph function
+            "LIST" => self.list(),          //LIST, use List Function
+            _ => { // Anything else is invalid 
+                eprintln!("Syntax error: expected PARAGRAF or LIST after #MAEK, found '{}'", self.current_tok);// get mad throw error
+                std::process::exit(1); // move to next token
             }
         }
     }
 
     fn format(&mut self) {
         // Handles stuff like bold, italics, newline, sounds, etc.
-        self.next_token();
-        match self.current_tok.as_str() {
-            "NEWLINE" => {
+        self.next_token(); // move to next token
+        match self.current_tok.as_str() { //if the next token is any of the following--
+            "NEWLINE" => { // if it is NEWLINE,
                 println!("Newline element");
-                self.html_output.push_str("<br>\n");
-                self.next_token();
+                self.html_output.push_str("<br>\n"); //add a line break to the html
+                self.next_token(); // move to next token
             }
 
-            "BOLD" => {
+            "BOLD" => { // if next token is BOLD
                 println!("Bold element start");
-                self.next_token();
+                self.next_token(); // move to next token
                 self.html_output.push_str("<b>"); //start bold html
                 while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //read everything inside bold until #MKAY
                     match self.current_tok.as_str() {
-                        "#LEMME" => {
+                        "#LEMME" => { //if next token is #LEMME
                             // allows variables inside bold text
                             self.var_use();
                         }
                         _ => {
-                            println!("Bold content: {}", self.current_tok);
-                            self.html_output.push_str(&format!(" {}", self.current_tok));
-                            self.next_token();
+                            println!("Bold content: {}", self.current_tok); 
+                            self.html_output.push_str(&format!(" {}", self.current_tok)); //add plain text to html 
+                            self.next_token(); // move to next token
                         }
                     }
                 }
@@ -483,20 +486,20 @@ impl LolspeakCompiler {
                 }
             }
 
-            "ITALICS" => {
-                println!("Italics text start");
-                self.next_token();
+            "ITALICS" => { // if next token is ITALICS
+                println!("Italics text star t");
+                self.next_token(); // move to next token
                 self.html_output.push_str("<i>"); //start italic html
                 while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //read everything inside bold until #MKAY
                     match self.current_tok.as_str() {
-                        "#LEMME" => {
+                        "#LEMME" => { //if next token is #LEMME
                              // allows variables inside italics text
                             self.var_use();
                         }
                         _ => {
                             println!("Italics content: {}", self.current_tok);
-                            self.html_output.push_str(&format!(" {}", self.current_tok));
-                            self.next_token();
+                            self.html_output.push_str(&format!(" {}", self.current_tok)); //add plain text to html 
+                            self.next_token(); // move to next token
                         }
                     }
                 }
@@ -506,14 +509,14 @@ impl LolspeakCompiler {
                 }
             }
 
-            "SOUNDZ" => {
+            "SOUNDZ" => { // if next token is SOUNDZ
                 println!("Sound element start");
                 self.next_token(); // move to next token
                 let url = self.current_tok.clone(); // store token as "url"
                 self.next_token(); // move to next token
-                if self.current_tok != "#MKAY" { //if it does not end with #MKAY, spit out error
-                    eprintln!("Syntax Error: Missing #MKAY after SOUNDZ link");
-                    std::process::exit(1);
+                if self.current_tok != "#MKAY" { //if it does not end with #MKAY, 
+                    eprintln!("Syntax Error: Missing #MKAY after SOUNDZ link"); //spit out error
+                    std::process::exit(1); //exit program
                 }
                 self.next_token(); // move to next token
                 self.html_output.push_str(&format!( //add for html
@@ -521,14 +524,14 @@ impl LolspeakCompiler {
                 ));
             },
 
-            "VIDZ" => {
+            "VIDZ" => { // if next token is VIDZ
                 println!("Video element start");
                 self.next_token(); // move to next token
                 let url = self.current_tok.clone(); // store token as "url"
                 self.next_token(); // move to next token
                 if self.current_tok != "#MKAY" { //if it does not end with #MKAY, spit out error
                     eprintln!("Syntax error: Missing #MKAY after VIDZ link");
-                    std::process::exit(1);
+                    std::process::exit(1); ////exit program
                 }
                 self.next_token(); // move to next token
                 self.html_output.push_str(&format!( //add for html
@@ -536,7 +539,7 @@ impl LolspeakCompiler {
                 ));
             },
 
-            "NEWLINE" => {
+            "NEWLINE" => { // if next token is NEWLINE
                 println!("Newline element");
                 self.html_output.push_str("<br>\n"); //put <br> in html and do linebreak
                 self.next_token(); // move to next token 
@@ -552,88 +555,94 @@ impl LolspeakCompiler {
     fn variable(&mut self) {
         // <Variable> ::= "#I" "HAZ" <Var_Name> "#IT" "IZ" <Text> "#MKAY"
         println!("Parsing <Variable>...");
-        self.next_token();
+        self.next_token(); // move to next token 
 
-        if self.current_tok != "HAZ" {
-            eprintln!("Syntax error: expected 'HAZ' after #I, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "HAZ" {//make sure next variable is HAZ
+            eprintln!("Syntax error: expected 'HAZ' after #I, found '{}'", self.current_tok); //if not get mad, throw error 
+            std::process::exit(1);  //exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token 
 
         let name = self.current_tok.clone(); //// Get variable name
-        println!("Variable name: {}", name);
-        self.next_token();
+        println!("Variable name: {}", name); 
+        self.next_token(); // move to next token 
 
-        if self.current_tok != "#IT" {
-            eprintln!("Syntax error: expected '#IT' after, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "#IT" { //make sure next token is #IT
+            eprintln!("Syntax error: expected '#IT' after, found '{}'", self.current_tok); //if not get mad, throw error 
+            std::process::exit(1); //exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token 
 
-        if self.current_tok != "IZ" {
-            eprintln!("Syntax error: expected 'IZ' after, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "IZ" { //make sure next token is #IZ
+            eprintln!("Syntax error: expected 'IZ' after, found '{}'", self.current_tok); //if not get mad, throw error 
+            std::process::exit(1); //exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token 
 
-        //store token content until #MKAY
-        let mut value_parts = Vec::new();
-        while self.current_tok != "#MKAY" && !self.current_tok.is_empty() {
+        //store tokens until #MKAY
+        let mut value_parts = Vec::new(); 
+        while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { 
             value_parts.push(self.current_tok.clone());
-            self.next_token();
+            self.next_token(); // move to next token 
         }
 
         let value = value_parts.join(" ");
         println!("Variable value: {}", value);
 
-        // Store variable
+        // Store variable name and content
         self.varName.push(name);
         self.varContent.push(value);
 
-        if self.current_tok == "#MKAY" {
-            self.next_token();
-        } else {
-            eprintln!("Syntax error: missing '#MKAY' at end of variable definition.");
-            std::process::exit(1);
+        if self.current_tok == "#MKAY" {// makes sure variable definition ends with #MKAY
+            self.next_token(); // move to next token 
+        } else { //other wise get mad
+            eprintln!("Syntax error: missing '#MKAY' at end of variable definition."); // throw error 
+            std::process::exit(1); //exit program
         }
     }
 
     fn var_use(&mut self) {
         // <Var_Use> ::= "#LEMME" "SEE" <Var_Name> "#MKAY"
         println!("Parsing <Var_Use>...");
-        self.next_token();
+        self.next_token();  // move to next token 
 
-        if self.current_tok != "SEE" {
-            eprintln!("Syntax error: expected 'SEE' after #LEMME, found '{}'", self.current_tok);
-            std::process::exit(1);
+        if self.current_tok != "SEE" { //make sure next token is SEE
+            eprintln!("Syntax error: expected 'SEE' after #LEMME, found '{}'", self.current_tok); //if not get mad, throw error
+            std::process::exit(1); //exit program
         }
-        self.next_token();
+        self.next_token(); // move to next token 
 
-        let name = self.current_tok.clone();
+        let name = self.current_tok.clone(); //make a string that is a copy of this token
         println!("Using variable: {}", name);
 
-        // Look up variable name
+        // Look up variable name in the varName list, "pos" is the index that we are looking up to match
         if let Some(pos) = self.varName.iter().position(|n| *n == name) {
             let value = &self.varContent[pos];
-            self.html_output.push_str(&format!("{}", value));
-            println!("Inserted variable value into HTML: {}", value);
-        } else {
-            eprintln!("Semantic error: variable '{}' not defined.", name);
-            std::process::exit(1);
+            self.html_output.push_str(&format!("{}", value)); //put the variable in the html
+            println!("Inserted variable value into HTML: {}", value); 
+        } else { //could not find variable name in the varName list
+            eprintln!("Semantic error: variable '{}' not defined.", name); //get mad, throw Semantic error
+            std::process::exit(1); //and exit program
         }
 
-        self.next_token();
-        if self.current_tok == "#MKAY" {
-            self.next_token();
-        } else {
-            eprintln!("Syntax error: missing '#MKAY' after variable use.");
-            std::process::exit(1);
+        self.next_token(); // move to next token 
+        if self.current_tok == "#MKAY" { //make sure next token is #MKAY
+            self.next_token(); // move to next token 
+        } else { //otherwise 
+            eprintln!("Syntax error: missing '#MKAY' after variable use."); //get mad, throw error
+            std::process::exit(1); //and exit program
         }
     }
 
 }
 
     
+    //******************* Oscar changes:
+    /*
+    This is the end of my compiler code for my LOLspeak Grammar
+    For the rest of this, we are going back to lab5 code.
+    Expect me to do the "******************* Oscar changes:" for comments and to see what changed between lab 5 
+    */
 
 impl Compiler for LolspeakCompiler {
     fn compile(&mut self, source: &str) {
