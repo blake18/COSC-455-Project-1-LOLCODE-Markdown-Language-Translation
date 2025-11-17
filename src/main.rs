@@ -10,6 +10,7 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 //
 // ===================== Compiler Trait =====================
@@ -88,8 +89,12 @@ impl SimpleLexicalAnalyzer {
             }
         }
         if !self.current_build.is_empty() {
-            let token = std::mem::take(&mut self.current_build);
-            self.tokens.push(token.to_uppercase());
+            let mut token = std::mem::take(&mut self.current_build);
+            //after testing case files, realize needed to make sure everything isnt upper cased, only tokens
+            if token.starts_with('#') {
+                token = token.to_uppercase();
+            } 
+            self.tokens.push(token);
         }
         self.tokens.reverse();
     }
@@ -135,9 +140,15 @@ pub struct LolspeakCompiler {
     pub html_output: String,
 
     // ******************* Oscar changes:
-    // add vector for variables 
-    pub varName: Vec<String>,
-    pub varContent: Vec<String>,
+    //add vectors for variables 
+    //pub varName: Vec<String>,
+    //pub varContent: Vec<String>,
+    //This declares a stack of scope, learned this from chatgpt, this is really cool and blew my mind, helped with scoping in later test cases
+    pub scopes: Vec<(Vec<String>, Vec<String>)>,
+
+    // ******************* Oscar changes:
+    // added marks for scoping, added this for test case 8 & 9
+    pub scope_marks: Vec<usize>,
 }
 
 impl LolspeakCompiler {
@@ -146,13 +157,11 @@ impl LolspeakCompiler {
             lexer: SimpleLexicalAnalyzer::new(""),
             current_tok: String::new(),
             // ******************* Oscar changes
-            //add output for constructor
+            //initialize new stuff for contructor 
             html_output: String::new(), 
-
-            // ******************* Oscar changes:
-            //add the variables for contructor
-            varName: Vec::new(),
-            varContent: Vec::new(),
+            scopes: vec![(Vec::new(), Vec::new())],
+            scope_marks: vec![0],
+            
         }
     }
 
@@ -167,6 +176,17 @@ impl LolspeakCompiler {
             eprintln!("User error: The provided sentence is empty.");
             std::process::exit(1);
         }
+    }
+
+    // ******************* Oscar changes
+    //helper methods for scoping
+    fn enter_scope(&mut self) {
+       self.scopes.push((Vec::new(), Vec::new()));
+
+    }
+
+    fn exit_scope(&mut self) {
+        self.scopes.pop();
     }
 
     //******************* Oscar changes:
@@ -318,7 +338,7 @@ impl LolspeakCompiler {
 
         //html
         self.html_output
-            .push_str(&format!("Comment written: {} -->\n", comment_text.trim()));
+            .push_str(&format!("<!-- {} -->\n", comment_text.trim()));
     }
 
     fn bodyRepeatable(&mut self) {
@@ -334,14 +354,18 @@ impl LolspeakCompiler {
         // <Body> ::= <Comment> | <Paragraph> | <List> | <Bold> | <Italics> | <Sound> | <Video> | <Newline> | <Variable> | <Var_Use> | <Text> | ""
         match self.current_tok.as_str() {
             "#OBTW" => self.comment(),
-            "#MAEK" => self.paragraphOrList(),
+            "#MAEK" => {
+                self.next_token(); // move to next token
+                self.paragraphOrList();
+            }
             "#GIMMEH" => self.format(), 
             "#I" => self.variable(),
             "#LEMME" => self.var_use(),
             _ => {
                 // Plain text or variable use, gets added to html later
                 println!("Encountered text or variable: {}", self.current_tok);
-                self.next_token();
+                self.html_output.push_str(&format!(" {}", self.current_tok));
+                self.next_token(); // move to next token
             }
         }
     }
@@ -356,15 +380,27 @@ impl LolspeakCompiler {
         }
         self.next_token(); // move to next token
 
+        //Enter scope (for scoping)
+        self.enter_scope();
+
         // start HTML paragraph
         self.html_output.push_str("<p>");
 
-        //parse through paragraph until #OIC
-        while self.current_tok != "#OIC" && !self.current_tok.is_empty() {
+        if self.current_tok == "#MKAY" { //check if next token is #MKAY
+            eprintln!("Syntax error: Unexpected #MKAY inside paragraph."); //if not get mad, spit error
+            std::process::exit(1); //exit program
+        }
+
+        //parse through paragraph until a keyword (like #OIC).
+        while !self.current_tok.is_empty() { //While there are still tokens 
+            if self.current_tok == "#OIC" { //check to see if next token is #OIC
+            break; //if so, stop
+        }
             match self.current_tok.as_str() {
                 "#GIMMEH" => self.format(), // detects format
-                "#LEMME" => self.var_use(), // adds variables 
-                "#MAEK" => self.list(),     // allows lists
+                "#I" => self.variable(), // adds variables declarations
+                "#LEMME" => self.var_use(), // adds variables use
+                "#MAEK" => return, //means another paragraph or list
                 _ => {//adds the plain text to html
                     self.html_output.push_str(&format!(" {}", self.current_tok)); //added for html
                     println!("Paragraph content: {}", self.current_tok);
@@ -382,6 +418,9 @@ impl LolspeakCompiler {
             eprintln!("Syntax error: Missing #OIC at end of paragraph block."); //if not get mad, throw error
             std::process::exit(1); //and exit program
         }
+
+        //Leave scope
+        self.exit_scope();
     }
 
     fn list(&mut self) {
@@ -392,6 +431,9 @@ impl LolspeakCompiler {
             std::process::exit(1); //and exit program
         }
         self.next_token(); // move to next token
+
+        //Enter scope (for scoping)
+        self.enter_scope();
 
         //start HTML list output
         self.html_output.push_str("<ul>\n");
@@ -434,18 +476,27 @@ impl LolspeakCompiler {
         if self.current_tok == "#OIC" {// makes sure lists end with #OIC 
             self.html_output.push_str("</ul>\n"); //close HTML list
             println!("End of list.");
-            self.next_token(); // move to next token
+
+            //Leave scope
+            self.exit_scope();
+
+            self.next_token(); 
+            return;
         } else {//if it does not end with #OIC
             eprintln!("Syntax error: Missing #OIC at end of list block.");// get mad, throw error 
             std::process::exit(1); // move to next token
         }
+
     }
 
     fn paragraphOrList(&mut self) {
-        self.next_token(); // move to next token
         match self.current_tok.as_str() { //if the next token is--
-            "PARAGRAF" => self.paragraph(), // PARAGRAF, Uses Paragraph function
-            "LIST" => self.list(),          //LIST, use List Function
+            "PARAGRAF" => { // PARAGRAF, then-
+                self.paragraph(); // Use Paragraph function
+            }
+            "LIST" => {//LIST, then-
+                self.list(); // Use List function
+            }       
             _ => { // Anything else is invalid 
                 eprintln!("Syntax error: expected PARAGRAF or LIST after #MAEK, found '{}'", self.current_tok);// get mad throw error
                 std::process::exit(1); // move to next token
@@ -454,14 +505,11 @@ impl LolspeakCompiler {
     }
 
     fn format(&mut self) {
-        // Handles stuff like bold, italics, newline, sounds, etc.
+        // Handles stuff like bold, italics, newline, sounds, etc
+        if self.current_tok == "#GIMMEH" { //makes sures to skip #GIMMEH
         self.next_token(); // move to next token
+        }
         match self.current_tok.as_str() { //if the next token is any of the following--
-            "NEWLINE" => { // if it is NEWLINE,
-                println!("Newline element");
-                self.html_output.push_str("<br>\n"); //add a line break to the html
-                self.next_token(); // move to next token
-            }
 
             "BOLD" => { // if next token is BOLD
                 println!("Bold element start");
@@ -470,8 +518,10 @@ impl LolspeakCompiler {
                 while self.current_tok != "#MKAY" && !self.current_tok.is_empty() { //read everything inside bold until #MKAY
                     match self.current_tok.as_str() {
                         "#LEMME" => { //if next token is #LEMME
-                            // allows variables inside bold text
-                            self.var_use();
+                            self.var_use(); // allows variables inside bold text
+                        }
+                        "#GIMMEH" => { //if next token is #GIMMEH
+                            self.format(); // allows nesting like italics or newline
                         }
                         _ => {
                             println!("Bold content: {}", self.current_tok); 
@@ -484,6 +534,7 @@ impl LolspeakCompiler {
                 if self.current_tok == "#MKAY" { //moves to next token after #MKAY
                     self.next_token();
                 }
+                return;    
             }
 
             "ITALICS" => { // if next token is ITALICS
@@ -507,6 +558,7 @@ impl LolspeakCompiler {
                 if self.current_tok == "#MKAY" { //moves to next token after #MKAY
                     self.next_token();
                 }
+                return;    
             }
 
             "SOUNDZ" => { // if next token is SOUNDZ
@@ -522,6 +574,7 @@ impl LolspeakCompiler {
                 self.html_output.push_str(&format!( //add for html
                     "<audio controls><source src=\"{}\" type=\"audio/mpeg\"></audio>", url 
                 ));
+                return;    
             },
 
             "VIDZ" => { // if next token is VIDZ
@@ -537,12 +590,14 @@ impl LolspeakCompiler {
                 self.html_output.push_str(&format!( //add for html
                         "<iframe src=\"{}\"></iframe>", url
                 ));
+                return;    
             },
 
             "NEWLINE" => { // if next token is NEWLINE
                 println!("Newline element");
                 self.html_output.push_str("<br>\n"); //put <br> in html and do linebreak
                 self.next_token(); // move to next token 
+                return;    
             },
 
             _ => {
@@ -590,8 +645,10 @@ impl LolspeakCompiler {
         println!("Variable value: {}", value);
 
         // Store variable name and content
-        self.varName.push(name);
-        self.varContent.push(value);
+        let (names, values) = self.scopes.last_mut().unwrap();
+        names.push(name);
+        values.push(value);
+        
 
         if self.current_tok == "#MKAY" {// makes sure variable definition ends with #MKAY
             self.next_token(); // move to next token 
@@ -616,15 +673,22 @@ impl LolspeakCompiler {
         println!("Using variable: {}", name);
 
         // Look up variable name in the varName list, "pos" is the index that we are looking up to match
-        if let Some(pos) = self.varName.iter().position(|n| *n == name) {
-            let value = &self.varContent[pos];
-            self.html_output.push_str(&format!("{}", value)); //put the variable in the html
-            println!("Inserted variable value into HTML: {}", value); 
-        } else { //could not find variable name in the varName list
-            eprintln!("Semantic error: variable '{}' not defined.", name); //get mad, throw Semantic error
-            std::process::exit(1); //and exit program
+        let mut found: Option<String> = None;
+
+        for (names, values) in self.scopes.iter().rev() {
+            if let Some(pos) = names.iter().position(|n| *n == name) {
+                found = Some(values[pos].clone());
+                break;
+            }
         }
 
+        if let Some(val) = found {
+            self.html_output.push_str(&format!(" {}", val));
+        } else {
+            eprintln!("Semantic error: variable '{}' not defined.", name);
+            std::process::exit(1);
+        }
+       
         self.next_token(); // move to next token 
         if self.current_tok == "#MKAY" { //make sure next token is #MKAY
             self.next_token(); // move to next token 
@@ -636,10 +700,9 @@ impl LolspeakCompiler {
 
 }
 
-    
     //******************* Oscar changes:
     /*
-    This is the end of my compiler code for my LOLspeak Grammar
+    This is the end of my code for my LOLspeak Grammar
     For the rest of this, we are going back to lab5 code.
     Expect me to do the "******************* Oscar changes:" for comments and to see what changed between lab 5 
     */
@@ -700,7 +763,7 @@ fn main() {
 
     let filename = &args[1];
     let sentence = fs::read_to_string(filename).unwrap_or_else(|err| {
-        eprintln!("Error reading file '{}': {}", filename, err);
+        eprintln!("Error: Input file must have a .lol extension.");
         std::process::exit(1);
     });
 
@@ -708,23 +771,31 @@ fn main() {
     compiler.compile(&sentence);
 
     // ******************* Oscar changes:
+    //everything below is a new change
+
     //mostly for debugging, just a section of the output that I see the parser parse through
     println!("\n        Parse Log:");
-
     compiler.parse();
 
-    // ******************* Oscar changes:
     //mostly for debugging, prints out the html output
     println!("\n        HTML OUTPUT:");
     println!("{}", compiler.html_output);
 
-    // ******************* Oscar changes:
+    // Create output file with the same name as the input
+    let path = Path::new(filename);
+    let stem = path.file_stem().unwrap_or_else(|| {
+        eprintln!("Error: Invalid input filename '{}'", filename);
+        std::process::exit(1);
+    });
+    let mut output_path = path.with_file_name(stem);
+    output_path.set_extension("html");
+
     //for outputing the html into a file
     let mut output_file = File::create("output.html")
         .expect("Error: Could not create html file.");
     write!(output_file, "{}", compiler.html_output)
         .expect("Error: Failed to write HTML output.");
-    println!("\n HTML output has been written to output.txt");
-
+    println!("\nHTML output has been written to {:?}.", output_path);
+    
     
 }
