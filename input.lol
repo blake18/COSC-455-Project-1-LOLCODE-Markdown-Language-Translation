@@ -1,18 +1,20 @@
 #HAI
-#OBTW This test case assess that your compiler resolves multiple variable. #TLDR
-#MAEK HEAD 
-	#GIMMEH TITLE Test 9 #MKAY
-#OIC
+    #OBTW Testing everything together #TLDR
 
-#I HAZ myanswer #IT IZ happiness #MKAY
+    #MAEK HEAD
+        #GIMMEH TITLE Everything Test #MKAY
+    #OIC
 
-#MAEK PARAGRAF
-	#I HAZ answer #IT IZ 42 #MKAY
-	#GIMMEH ITALICS What is the meaning of life. #MKAY 
-	The meaning of #GIMMEH BOLD life #MKAY is #LEMME SEE answer #MKAY
-#OIC
-
-#MAEK PARAGRAF No. The meaning of life is really #LEMME SEE myanswer #MKAY #OIC
-
+    #MAEK PARAGRAF
+        This paragraph contains #GIMMEH BOLD bold text #MKAY 
+        and #GIMMEH ITALICS italics text #MKAY .
+        #GIMMEH NEWLINE
+        #I HAZ lastname #IT IZ Ma #MKAY
+        The last name is #LEMME SEE lastname #MKAY .
+        #MAEK LIST
+            #GIMMEH ITEM Oscar #LEMME SEE lastname #MKAY #MKAY
+            #GIMMEH ITEM Batman #LEMME SEE lastname #MKAY #MKAY
+        #OIC
+        #GIMMEH VIDZ https://youtu.be/UfTpKaKXbG4 #MKAY
+    #OIC
 #KTHXBYE
-
