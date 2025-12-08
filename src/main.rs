@@ -11,6 +11,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use std::process::Command;
 
 //
 // ===================== Compiler Trait =====================
@@ -116,16 +117,45 @@ impl LexicalAnalyzer for SimpleLexicalAnalyzer {
     }
 
     fn lookup(&self, s: &str) -> bool {
-        //******************* Oscar changes:
-        //tells the compiler only to check words that start with #”
-        if s.starts_with('#') {
-            self.hashWords.iter().any(|k| k == s)
-        } else {
-            //******************* Oscar changes:
-            // non hash tokens are allowed like text and URLs
-            true
+        // If the token contains any <, >, or &, immediately throw it out
+        if s.contains('<') || s.contains('>') || s.contains('&') {
+            return false;
         }
+
+        //converts tokens to uppercase for checking
+        let upper = s.to_uppercase();
+
+        //if token starts with # and is one of the hashwords, allow it
+        if s.starts_with('#') {
+            return self.hashWords.iter().any(|k| k == s);
+        }
+
+        //it token is all uppercase and it sone of the plainWords, allow it
+        if self.plainWords.iter().any(|k| k.eq_ignore_ascii_case(&upper)) {
+            return true;
+        }
+
+        //check if token is a variable name, allow it if so
+        {
+            let mut chars = s.chars();
+            if let Some(first) = chars.next() {
+                if first.is_ascii_alphabetic()
+                    && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+                {
+                    return true;
+                }
+            }
+        }
+
+        //Otherwise, treat it as plain-text
+        if s.chars().all(|c| { c.is_ascii_alphanumeric() || matches!(c, ',' | '.' | '"' | ':' | '?' | '!' | '%' | '/') || c.is_whitespace()}) {
+            return true;
+        }
+
+        //anything else, get mad throw error
+        false
     }
+    
 }
 
 //
@@ -145,10 +175,6 @@ pub struct LolspeakCompiler {
     //pub varContent: Vec<String>,
     //This declares a stack of scope, learned this from chatgpt, this is really cool and blew my mind, helped with scoping in later test cases
     pub scopes: Vec<(Vec<String>, Vec<String>)>,
-
-    // ******************* Oscar changes:
-    // added marks for scoping, added this for test case 8 & 9
-    pub scope_marks: Vec<usize>,
 }
 
 impl LolspeakCompiler {
@@ -159,9 +185,7 @@ impl LolspeakCompiler {
             // ******************* Oscar changes
             //initialize new stuff for contructor 
             html_output: String::new(), 
-            scopes: vec![(Vec::new(), Vec::new())],
-            scope_marks: vec![0],
-            
+            scopes: vec![(Vec::new(), Vec::new())],  
         }
     }
 
@@ -746,6 +770,34 @@ impl Compiler for LolspeakCompiler {
     }
 }
 
+//******************* Oscar changes:
+//added function for opening html file in browser using std::process::Command
+fn open_in_browser(path: &str) {
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open")
+            .arg(path)
+            .spawn()
+            .expect("Failed to open browser");
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(path)
+            .spawn()
+            .expect("Failed to open browser");
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(&["/C", "start", path])
+            .spawn()
+            .expect("Failed to open browser");
+    }
+}
+
 //
 // ===================== Main =====================
 //
@@ -797,5 +849,6 @@ fn main() {
         .expect("Error: Failed to write HTML output.");
     println!("\nHTML output has been written to {:?}.", output_path);
     
-    
+    //opens html file in browser
+    open_in_browser("output.html");
 }
